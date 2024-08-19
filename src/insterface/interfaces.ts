@@ -3,6 +3,9 @@ import { RegisterUser } from "../page/register/Register";
 import { UpdatePassword } from "../page/update_password/UpdatePassword";
 import { UserInfo } from "../page/update_info/UpdateInfo";
 import { message } from "antd";
+import { SearchBooking } from "../page/booking_history/BookingHistory";
+import dayjs from "dayjs";
+import { CreateBooking } from "../page/meeting_room_list/CreateBookingModal";
 
 const axiosInstance = axios.create({
   baseURL: 'http://localhost:3000/',
@@ -27,41 +30,16 @@ const queue: PendingTask[] = [];
 
 axiosInstance.interceptors.response.use(
   (response) => {
-    // Check for specific conditions if needed
-    if (response.data.error) {
-      // Modify the response data to include an error flag or message
-      return Promise.reject(response.data.error);
-    }
     return response;
   },
   async (error) => {
-    if (!error.response) {
-      return Promise.reject(error);
-    }
     let { data, config } = error.response;
 
-    if (refreshing) {
-      return new Promise((resolve) => {
-        queue.push({
-          config,
-          resolve
-        });
-      });
-    }
-
     if (data.code === 401 && !config.url.includes('/user/refresh')) {
-      refreshing = true;
 
       const res = await refreshToken();
 
-      refreshing = false;
-
       if (res.status === 200 || res.status === 201) {
-
-        queue.forEach(({ config, resolve }) => {
-          resolve(axiosInstance(config))
-        })
-
         return axiosInstance(config);
       } else {
         message.error(res.data);
@@ -72,8 +50,7 @@ axiosInstance.interceptors.response.use(
       }
 
     } else {
-      message.error(error.response.data.data)
-      return Promise.reject(error);
+      return error.response;
     }
   }
 )
@@ -130,4 +107,67 @@ export async function updateInfo(data: UserInfo) {
 
 export async function updateUserInfoCaptcha() {
   return await axiosInstance.get('/user/update/captcha');
+}
+
+export async function searchMeetingRoomList(name: string, capacity: number, equipment: string, pageNo: number, pageSize: number) {
+  return await axiosInstance.get('/meeting-room/list', {
+    params: {
+      name,
+      capacity,
+      equipment,
+      pageNo,
+      pageSize
+    }
+  });
+}
+
+export async function bookingList(searchBooking: SearchBooking, pageNo: number, pageSize: number) {
+
+  let bookingTimeRangeStart;
+  let bookingTimeRangeEnd;
+
+  if (searchBooking.rangeStartDate && searchBooking.rangeStartTime) {
+    const rangeStartDateStr = dayjs(searchBooking.rangeStartDate).format('YYYY-MM-DD');
+    const rangeStartTimeStr = dayjs(searchBooking.rangeStartTime).format('HH:mm');
+    bookingTimeRangeStart = dayjs(rangeStartDateStr + ' ' + rangeStartTimeStr).valueOf()
+  }
+
+  if (searchBooking.rangeEndDate && searchBooking.rangeEndTime) {
+    const rangeEndDateStr = dayjs(searchBooking.rangeEndDate).format('YYYY-MM-DD');
+    const rangeEndTimeStr = dayjs(searchBooking.rangeEndTime).format('HH:mm');
+    bookingTimeRangeEnd = dayjs(rangeEndDateStr + ' ' + rangeEndTimeStr).valueOf()
+  }
+
+  return await axiosInstance.get('/booking/list', {
+    params: {
+      username: searchBooking.username,
+      meetingRoomName: searchBooking.meetingRoomName,
+      meetingRoomPosition: searchBooking.meetingRoomPosition,
+      bookingTimeRangeStart,
+      bookingTimeRangeEnd,
+      pageNo: pageNo,
+      pageSize: pageSize
+    }
+  });
+}
+
+export async function unbind(id: number) {
+  return await axiosInstance.get('/booking/unbind/' + id);
+}
+
+export async function bookingAdd(booking: CreateBooking) {
+  const rangeStartDateStr = dayjs(booking.rangeStartDate).format('YYYY-MM-DD');
+  const rangeStartTimeStr = dayjs(booking.rangeStartTime).format('HH:mm');
+  const startTime = dayjs(rangeStartDateStr + ' ' + rangeStartTimeStr).valueOf()
+
+  const rangeEndDateStr = dayjs(booking.rangeEndDate).format('YYYY-MM-DD');
+  const rangeEndTimeStr = dayjs(booking.rangeEndTime).format('HH:mm');
+  const endTime = dayjs(rangeEndDateStr + ' ' + rangeEndTimeStr).valueOf()
+
+  return await axiosInstance.post('/booking/add', {
+    meetingRoomId: booking.meetingRoomId,
+    startTime,
+    endTime,
+    note: booking.note
+  });
 }
