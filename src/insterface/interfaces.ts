@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 import { CreateBooking } from "../page/meeting_room_list/CreateBookingModal";
 
 const axiosInstance = axios.create({
-  baseURL: 'http://118.31.0.102:3005/api',
+  baseURL: 'http://localhost:3000',
   timeout: 3000
 });
 
@@ -171,3 +171,8 @@ export async function bookingAdd(booking: CreateBooking) {
     note: booking.note
   });
 }
+
+export async function presignedUrl(fileName: string) {
+  return axiosInstance.get(`/minio/presignedUrl?name=${fileName}`);
+}
+

@@ -45,7 +45,15 @@ export function UpdateInfo() {
     if (res.status === 201 || res.status === 200) {
       const { message: msg, data } = res.data;
       if (msg === 'success') {
-        message.success('用户信息更新成功');
+        const userInfo = localStorage.getItem('user_info');
+        if (userInfo) {
+          const info = JSON.parse(userInfo);
+          info.headPic = values.headPic;
+          info.nickName = values.nickName;
+
+          localStorage.setItem('user_info', JSON.stringify(info));
+        }
+
       } else {
         message.error(data);
       }
