@@ -8,10 +8,6 @@ interface LoginUser {
   password: string;
 }
 
-
-
-
-
 const layout1 = {
   labelCol: { span: 4 },
   wrapperCol: { span: 20 }
@@ -71,6 +67,15 @@ export function Login() {
         <div className='links'>
           <a href='/register'>创建账号</a>
           <a href='/update_password'>忘记密码</a>
+        </div>
+      </Form.Item>
+      <Form.Item
+        {...layout2}
+      >
+        <div>
+          <a href="#" onClick={() => {
+            window.location.href = "http://localhost:3000/user/google";
+          }}>Google 账号登录</a>
         </div>
       </Form.Item>
 
